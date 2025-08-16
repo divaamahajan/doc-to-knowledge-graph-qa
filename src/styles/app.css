@@ -1,0 +1,39 @@
+.app-container {
+  font-family: sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #f5f6fa;
+}
+
+.login-box, .profile-box {
+  text-align: center;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  min-width: 300px;
+}
+
+.title {
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.subtitle {
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.welcome {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.info {
+  font-size: 1rem;
+  color: #555;
+}

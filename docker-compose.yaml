@@ -1,0 +1,14 @@
+version: '3.5'
+
+services:
+  frontend:
+    container_name: frontend_app
+    build: ./frontend
+    ports:
+      - "3000:80"
+    networks:
+      - backend_net
+
+networks:
+  backend_net:
+    driver: bridge
