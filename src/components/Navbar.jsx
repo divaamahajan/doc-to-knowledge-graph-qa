@@ -36,46 +36,48 @@ function Navbar({ user, onLogout }) {
             Home
           </Link>
           
-          <Link 
-            to="/chat" 
-            style={{
-              ...styles.navLink,
-              ...(isActive('/chat') ? styles.activeLink : {})
-            }}
-          >
-            Chat
-          </Link>
-          
-          <Link 
-            to="/qa" 
-            style={{
-              ...styles.navLink,
-              ...(isActive('/qa') ? styles.activeLink : {})
-            }}
-          >
-            Q&A
-          </Link>
-          
-          <Link 
-            to="/filehandler" 
-            style={{
-              ...styles.navLink,
-              ...(isActive('/filehandler') ? styles.activeLink : {})
-            }}
-          >
-            Files
-          </Link>
-
           {user && (
-            <Link 
-              to="/profile" 
-              style={{
-                ...styles.navLink,
-                ...(isActive('/profile') ? styles.activeLink : {})
-              }}
-            >
-              Profile
-            </Link>
+            <>
+              <Link 
+                to="/chat" 
+                style={{
+                  ...styles.navLink,
+                  ...(isActive('/chat') ? styles.activeLink : {})
+                }}
+              >
+                Chat
+              </Link>
+              
+              <Link 
+                to="/qa" 
+                style={{
+                  ...styles.navLink,
+                  ...(isActive('/qa') ? styles.activeLink : {})
+                }}
+              >
+                Q&A
+              </Link>
+              
+              <Link 
+                to="/filehandler" 
+                style={{
+                  ...styles.navLink,
+                  ...(isActive('/filehandler') ? styles.activeLink : {})
+                }}
+              >
+                Files
+              </Link>
+
+              <Link 
+                to="/profile" 
+                style={{
+                  ...styles.navLink,
+                  ...(isActive('/profile') ? styles.activeLink : {})
+                }}
+              >
+                Profile
+              </Link>
+            </>
           )}
         </div>
 
