@@ -12,7 +12,13 @@ export default function QAChatWindow({ user, token }) {
     { 
       id: 1,
       sender: "bot", 
-      text: `🧠 Hello${user ? ` ${user}` : ''}! I'm your Knowledge Graph assistant. Ask me anything about your uploaded documents!`,
+      text: `🧠 Hello${user ? ` ${user}` : ''}! I'm your Knowledge Graph assistant. You can:
+      
+📁 Upload files and ask questions about them
+🌐 Add URLs to analyze web content
+💬 Ask me anything about your knowledge base!
+
+Try adding a URL or uploading a file to get started!`,
       timestamp: new Date()
     },
   ]);
@@ -22,6 +28,9 @@ export default function QAChatWindow({ user, token }) {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
+  const [isUrlLoading, setIsUrlLoading] = useState(false);
+  const [urlStatus, setUrlStatus] = useState(null);
 
   const messagesEndRef = useRef(null);
   
@@ -119,7 +128,10 @@ export default function QAChatWindow({ user, token }) {
         id: Date.now() + 1,
         sender: "bot",
         text: data.answer || data.reply || "I received your message but couldn't generate a response.",
-        timestamp: new Date()
+        timestamp: new Date(),
+        sources: data.sources || [],
+        traversalPath: data.traversal_path || null,
+        showGraph: false
       };
       
       setMessages((prev) => [...prev, botMessage]);
@@ -166,6 +178,68 @@ export default function QAChatWindow({ user, token }) {
     setRetryCount(0);
   };
 
+  const handleToggleGraph = (messageId, showGraph) => {
+    setMessages(prev => prev.map(msg => 
+      msg.id === messageId ? { ...msg, showGraph } : msg
+    ));
+  };
+
+  const handleUrlSubmit = async () => {
+    if (!urlInput.trim() || isUrlLoading) return;
+
+    setIsUrlLoading(true);
+    setUrlStatus(null);
+
+    try {
+      const response = await fetch(`${KNOWLEDGE_GRAPH_BASE}/url-upload?url=${encodeURIComponent(urlInput.trim())}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      setUrlStatus({
+        type: 'success',
+        message: `✅ URL processed successfully! Added "${data.filename}" to knowledge graph.`
+      });
+
+      // Clear the input
+      setUrlInput('');
+      
+      // Refresh the file list to show the new URL-based file
+      fetchFiles();
+      
+      // Add a bot message to inform the user
+      const botMessage = {
+        id: Date.now() + 1,
+        sender: "bot",
+        text: `🌐 I've successfully processed the URL and added "${data.filename}" to your knowledge graph. You can now ask questions about this content!`,
+        timestamp: new Date(),
+        sources: [],
+        traversalPath: null,
+        showGraph: false
+      };
+      
+      setMessages(prev => [...prev, botMessage]);
+
+    } catch (error) {
+      console.error('URL processing error:', error);
+      setUrlStatus({
+        type: 'error',
+        message: `❌ Failed to process URL: ${error.message}`
+      });
+    } finally {
+      setIsUrlLoading(false);
+    }
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4">
       <div className="flex flex-col w-full max-w-4xl h-[85vh] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
@@ -198,7 +272,7 @@ export default function QAChatWindow({ user, token }) {
           <div className="flex-1 flex flex-col">
         {/* Enhanced Message area */}
         <main className="flex-1 overflow-y-auto p-6 bg-gradient-to-b from-gray-50 to-white space-y-4">
-          <MessageList messages={messages} />
+          <MessageList messages={messages} onToggleGraph={handleToggleGraph} />
           {isLoading && (
             <div className="flex items-center space-x-2 text-gray-500">
               <div className="flex space-x-1">
@@ -226,6 +300,44 @@ export default function QAChatWindow({ user, token }) {
 
           {/* Right Side - File List */}
           <div className="w-80 bg-gray-50 border-l border-gray-200 flex flex-col">
+            
+            {/* URL Input Section */}
+            <div className="px-4 py-4 bg-blue-50 border-b border-blue-200">
+              <h3 className="text-sm font-semibold text-blue-900 mb-3">🌐 Add URL Content</h3>
+              <div className="space-y-3">
+                <input
+                  type="url"
+                  placeholder="Enter URL to analyze..."
+                  className="w-full px-3 py-2 text-sm border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleUrlSubmit()}
+                />
+                <button
+                  onClick={handleUrlSubmit}
+                  disabled={!urlInput.trim() || isUrlLoading}
+                  className="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isUrlLoading ? (
+                    <span className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Processing...
+                    </span>
+                  ) : (
+                    'Add URL to Knowledge Graph'
+                  )}
+                </button>
+                {urlStatus && (
+                  <div className={`text-xs p-2 rounded ${
+                    urlStatus.type === 'success' 
+                      ? 'bg-green-100 text-green-800 border border-green-200' 
+                      : 'bg-red-100 text-red-800 border border-red-200'
+                  }`}>
+                    {urlStatus.message}
+                  </div>
+                )}
+              </div>
+            </div>
             
             {/* File List Header */}
             <div className="px-4 py-4 bg-gray-100 border-b border-gray-200">

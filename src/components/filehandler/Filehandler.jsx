@@ -7,7 +7,7 @@ function Filehandler({ user, token }) {
   const [loading, setLoading] = useState(false);
   const [uploadingIndex, setUploadingIndex] = useState(-1);
   const API_BASE = process.env.REACT_APP_API_BASE || "";
-  const FILE_HANDLER_BASE = `${API_BASE}/file_handler`;
+  const KNOWLEDGE_GRAPH_BASE = `${API_BASE}/knowledge-graph`;
 
   useEffect(() => {
     fetchFiles();
@@ -16,7 +16,7 @@ function Filehandler({ user, token }) {
   const fetchFiles = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${FILE_HANDLER_BASE}/files`, {
+      const res = await fetch(`${KNOWLEDGE_GRAPH_BASE}/files`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Failed to fetch files");
@@ -30,7 +30,7 @@ function Filehandler({ user, token }) {
 
   const downloadFile = (filename) => {
     window.open(
-      `${FILE_HANDLER_BASE}/file-download/${filename}?token=${token}`,
+      `${KNOWLEDGE_GRAPH_BASE}/file-download/${filename}?token=${token}`,
       "_blank"
     );
   };
@@ -46,7 +46,7 @@ function Filehandler({ user, token }) {
       formData.append("file", file);
 
       try {
-        const res = await fetch(`${FILE_HANDLER_BASE}/file-upload`, {
+        const res = await fetch(`${KNOWLEDGE_GRAPH_BASE}/file-upload`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -68,7 +68,7 @@ function Filehandler({ user, token }) {
   const deleteFile = async (filename) => {
     if (!window.confirm(`Delete ${filename}?`)) return;
     try {
-      const res = await fetch(`${FILE_HANDLER_BASE}/files/${filename}`, {
+      const res = await fetch(`${KNOWLEDGE_GRAPH_BASE}/files/${filename}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,

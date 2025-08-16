@@ -1,18 +1,24 @@
-// src/components/chatbot/MessageList.jsx
-import Message from "./Message";
+import React from 'react';
+import Message from './Message';
+import KnowledgeGraphVisualizer from '../KnowledgeGraphVisualizer';
 
-export default function MessageList({ messages }) {
+const MessageList = ({ messages, onToggleGraph }) => {
   return (
-    <>
-      {messages.map((msg) => (
-        <Message 
-          key={msg.id || msg.text + msg.timestamp} 
-          sender={msg.sender} 
-          text={msg.text}
-          timestamp={msg.timestamp}
-          isError={msg.isError}
-        />
+    <div className="space-y-4">
+      {messages.map((message) => (
+        <div key={message.id}>
+          <Message message={message} onToggleGraph={onToggleGraph} />
+          
+          {/* Show Graph Visualization if toggled */}
+          {message.showGraph && message.traversalPath && (
+            <div className="ml-12 mb-4">
+              <KnowledgeGraphVisualizer graphData={message.traversalPath} />
+            </div>
+          )}
+        </div>
       ))}
-    </>
+    </div>
   );
-}
+};
+
+export default MessageList;
