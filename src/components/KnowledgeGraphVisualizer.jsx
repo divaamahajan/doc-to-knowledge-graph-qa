@@ -17,10 +17,10 @@ const KnowledgeGraphVisualizer = ({ graphData, width = 800, height = 600 }) => {
 
     // Set up force simulation
     const simulation = d3.forceSimulation(graphData.nodes)
-      .force("link", d3.forceLink(graphData.edges).id(d => d.id).distance(100))
-      .force("charge", d3.forceManyBody().strength(-300))
+      .force("link", d3.forceLink(graphData.edges).id(d => d.id).distance(150))
+      .force("charge", d3.forceManyBody().strength(-400))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius(50));
+      .force("collision", d3.forceCollide().radius(80));
 
     // Create arrow marker for directed edges
     svg.append("defs").append("marker")
@@ -54,12 +54,12 @@ const KnowledgeGraphVisualizer = ({ graphData, width = 800, height = 600 }) => {
         .on("drag", dragged)
         .on("end", dragended));
 
-    // Add circles for nodes
+    // Add circles for nodes (increased sizes)
     nodes.append("circle")
       .attr("r", d => {
-        if (d.type === "file") return 25;
-        if (d.type === "chunk") return 20;
-        return 15;
+        if (d.type === "file") return 40;
+        if (d.type === "chunk") return 35;
+        return 30;
       })
       .attr("fill", d => {
         if (d.type === "file") return "#3B82F6";
@@ -69,14 +69,44 @@ const KnowledgeGraphVisualizer = ({ graphData, width = 800, height = 600 }) => {
       .attr("stroke", "#fff")
       .attr("stroke-width", 2);
 
-    // Add labels
-    nodes.append("text")
-      .text(d => d.label)
-      .attr("text-anchor", "middle")
-      .attr("dy", ".35em")
-      .attr("font-size", "12px")
-      .attr("fill", "#fff")
-      .attr("font-weight", "bold");
+    // Add labels with word wrapping using foreignObject
+    nodes.append("foreignObject")
+      .attr("width", d => {
+        if (d.type === "file") return 120;
+        if (d.type === "chunk") return 100;
+        return 80;
+      })
+      .attr("height", d => {
+        if (d.type === "file") return 60;
+        if (d.type === "chunk") return 50;
+        return 40;
+      })
+      .attr("x", d => {
+        if (d.type === "file") return -60;
+        if (d.type === "chunk") return -50;
+        return -40;
+      })
+      .attr("y", d => {
+        if (d.type === "file") return -30;
+        if (d.type === "chunk") return -25;
+        return -20;
+      })
+      .append("xhtml:div")
+      .style("width", "100%")
+      .style("height", "100%")
+      .style("display", "flex")
+      .style("align-items", "center")
+      .style("justify-content", "center")
+      .style("text-align", "center")
+      .style("font-size", "10px")
+      .style("font-weight", "bold")
+      .style("color", "#fff")
+      .style("word-wrap", "break-word")
+      .style("overflow-wrap", "break-word")
+      .style("hyphens", "auto")
+      .style("line-height", "1.2")
+      .style("padding", "2px")
+      .html(d => d.label);
 
     // Add tooltips
     nodes.append("title")
@@ -159,9 +189,9 @@ Total Chunks: ${d.total_chunks}`;
           </div>
         </div>
         <div className="mt-2 text-xs text-blue-700">
-          <span className="inline-block w-3 h-3 bg-blue-500 rounded-full mr-1"></span> Files
-          <span className="inline-block w-3 h-3 bg-green-500 rounded-full mx-2 mr-1"></span> Chunks
-          <span className="inline-block w-3 h-3 bg-yellow-500 rounded-full mx-2 mr-1"></span> Related
+          <span className="inline-block w-4 h-4 bg-blue-500 rounded-full mr-1"></span> Files
+          <span className="inline-block w-4 h-4 bg-green-500 rounded-full mx-2 mr-1"></span> Chunks
+          <span className="inline-block w-4 h-4 bg-yellow-500 rounded-full mx-2 mr-1"></span> Related
         </div>
       </div>
       
