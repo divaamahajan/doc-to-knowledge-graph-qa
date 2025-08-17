@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 
-function Filehandler({ user, token }) {
+function Filehandler() {
   const [files, setFiles] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -16,9 +15,7 @@ function Filehandler({ user, token }) {
   const fetchFiles = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${KNOWLEDGE_GRAPH_BASE}/files`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`${KNOWLEDGE_GRAPH_BASE}/files`);
       if (!res.ok) throw new Error("Failed to fetch files");
       const data = await res.json();
       setFiles(data);
@@ -30,7 +27,7 @@ function Filehandler({ user, token }) {
 
   const downloadFile = (filename) => {
     window.open(
-      `${KNOWLEDGE_GRAPH_BASE}/file-download/${filename}?token=${token}`,
+      `${KNOWLEDGE_GRAPH_BASE}/file-download/${filename}`,
       "_blank"
     );
   };
@@ -48,9 +45,6 @@ function Filehandler({ user, token }) {
       try {
         const res = await fetch(`${KNOWLEDGE_GRAPH_BASE}/file-upload`, {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
           body: formData,
         });
         if (!res.ok) throw new Error(`Upload failed for ${file.name}`);
@@ -70,9 +64,6 @@ function Filehandler({ user, token }) {
     try {
       const res = await fetch(`${KNOWLEDGE_GRAPH_BASE}/files/${filename}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
       if (!res.ok) throw new Error("Delete failed");
       await fetchFiles();
@@ -105,7 +96,7 @@ function Filehandler({ user, token }) {
             <h2 className="text-xl font-semibold text-gray-900 mb-1">Upload Files</h2>
             <p className="text-sm text-gray-500">Select one or more files to upload to your storage</p>
           </div>
-          
+
           <form onSubmit={uploadFiles} className="space-y-6">
             <div className="relative">
               <input
@@ -132,8 +123,8 @@ function Filehandler({ user, token }) {
                     <li
                       key={idx}
                       className={`flex items-center justify-between p-3 rounded-md ${
-                        uploadingIndex === idx 
-                          ? "bg-blue-100 border border-blue-200" 
+                        uploadingIndex === idx
+                          ? "bg-blue-100 border border-blue-200"
                           : "bg-white border border-gray-200"
                       }`}
                     >

@@ -1,15 +1,8 @@
-
 import React from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
-function Navbar({ user, onLogout }) {
-  const navigate = useNavigate();
+function Navbar() {
   const location = useLocation();
-
-  const handleLogoutClick = () => {
-    onLogout();
-    navigate("/login");
-  };
 
   const isActive = (path) => {
     return location.pathname === path;
@@ -26,8 +19,8 @@ function Navbar({ user, onLogout }) {
         </div>
 
         <div style={styles.navLinks}>
-          <Link 
-            to="/home" 
+          <Link
+            to="/home"
             style={{
               ...styles.navLink,
               ...(isActive('/home') ? styles.activeLink : {})
@@ -35,74 +28,54 @@ function Navbar({ user, onLogout }) {
           >
             Home
           </Link>
-          
-          {user && (
-            <>
-              <Link 
-                to="/chat" 
-                style={{
-                  ...styles.navLink,
-                  ...(isActive('/chat') ? styles.activeLink : {})
-                }}
-              >
-                Chat
-              </Link>
-              
-              <Link 
-                to="/qa" 
-                style={{
-                  ...styles.navLink,
-                  ...(isActive('/qa') ? styles.activeLink : {})
-                }}
-              >
-                Q&A
-              </Link>
-              
-              <Link 
-                to="/filehandler" 
-                style={{
-                  ...styles.navLink,
-                  ...(isActive('/filehandler') ? styles.activeLink : {})
-                }}
-              >
-                Files
-              </Link>
 
-              <Link 
-                to="/profile" 
-                style={{
-                  ...styles.navLink,
-                  ...(isActive('/profile') ? styles.activeLink : {})
-                }}
-              >
-                Profile
-              </Link>
-            </>
-          )}
+          <>
+            <Link
+              to="/chat"
+              style={{
+                ...styles.navLink,
+                ...(isActive('/chat') ? styles.activeLink : {})
+              }}
+            >
+              Chat
+            </Link>
+
+            <Link
+              to="/qa"
+              style={{
+                ...styles.navLink,
+                ...(isActive('/qa') ? styles.activeLink : {})
+              }}
+            >
+              Q&A
+            </Link>
+
+            <Link
+              to="/filehandler"
+              style={{
+                ...styles.navLink,
+                ...(isActive('/filehandler') ? styles.activeLink : {})
+              }}
+            >
+              Files
+            </Link>
+
+            <Link
+              to="/profile"
+              style={{
+                ...styles.navLink,
+                ...(isActive('/profile') ? styles.activeLink : {})
+              }}
+            >
+              Profile
+            </Link>
+          </>
         </div>
 
         <div style={styles.authSection}>
-          {!user ? (
-            <Link to="/login" style={styles.loginButton}>
-              Sign In
-            </Link>
-          ) : (
-            <div style={styles.userSection}>
-              <div style={styles.userInfo}>
-                {user.picture ? (
-                  <img src={user.picture} alt={user.name} style={styles.userAvatar} />
-                ) : (
-                  <div style={styles.avatarPlaceholder}>
-                    {user.name?.charAt(0)?.toUpperCase() || 'U'}
-                  </div>
-                )}
-                <span style={styles.userName}>{user.name}</span>
-              </div>
-              <button onClick={handleLogoutClick} style={styles.logoutButton}>
-                Sign Out
-              </button>
-            </div>
-          )}
+          <Link to="/login" style={styles.loginButton}>
+            Sign In
+          </Link>
         </div>
       </div>
     </nav>
@@ -239,12 +212,12 @@ if (typeof window !== 'undefined') {
       color: #667eea !important;
       background: rgba(102, 126, 234, 0.05) !important;
     }
-    
+
     nav button:hover {
       background: #f7fafc !important;
       border-color: #cbd5e0 !important;
     }
-    
+
     .login-button:hover {
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;

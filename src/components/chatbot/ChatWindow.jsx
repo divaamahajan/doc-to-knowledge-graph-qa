@@ -28,10 +28,10 @@ export default function ChatWindow() {
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-    
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -69,14 +69,14 @@ export default function ChatWindow() {
         text: data.reply || "I received your message but couldn't generate a response.",
         timestamp: new Date()
       };
-      
+
       setMessages((prev) => [...prev, botMessage]);
       setRetryCount(0);
     } catch (error) {
       console.error("Chat error:", error);
-      
+
       let errorMessage = "I'm having trouble connecting right now. ";
-      
+
       if (!isOnline) {
         errorMessage = "🔌 You appear to be offline. Please check your internet connection.";
       } else if (error.message.includes('500')) {
@@ -96,7 +96,7 @@ export default function ChatWindow() {
         timestamp: new Date(),
         isError: true
       };
-      
+
       setMessages((prev) => [...prev, errorBotMessage]);
       setRetryCount(prev => prev + 1);
     } finally {

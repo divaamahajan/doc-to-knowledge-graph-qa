@@ -7,13 +7,13 @@ const API_BASE = process.env.REACT_APP_API_BASE;
 export const KNOWLEDGE_GRAPH_BASE = `${API_BASE}/knowledge-graph`;
 export const AI_CHAT_URL = `${KNOWLEDGE_GRAPH_BASE}/qa`;
 
-export default function QAChatWindow({ user, token }) {
+export default function QA() {
   const [messages, setMessages] = useState([
     { 
       id: 1,
       sender: "bot", 
-      text: `🧠 Hello${user ? ` ${user}` : ''}! I'm your Knowledge Graph assistant. You can:
-      
+      text: `🧠 Hello! I'm your Knowledge Graph assistant. You can:
+
 📁 Upload files and ask questions about them
 🌐 Add URLs to analyze web content
 💬 Ask me anything about your knowledge base!
@@ -33,7 +33,7 @@ Try adding a URL or uploading a file to get started!`,
   const [urlStatus, setUrlStatus] = useState(null);
 
   const messagesEndRef = useRef(null);
-  
+
     useEffect(() => {
       fetchFiles();
     }, []);
@@ -41,9 +41,7 @@ Try adding a URL or uploading a file to get started!`,
   const fetchFiles = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${KNOWLEDGE_GRAPH_BASE}/files`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`${KNOWLEDGE_GRAPH_BASE}/files`);
       if (!res.ok) throw new Error("Failed to fetch files");
       const data = await res.json();
       setFiles(data);
@@ -76,10 +74,10 @@ Try adding a URL or uploading a file to get started!`,
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-    
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -103,7 +101,7 @@ Try adding a URL or uploading a file to get started!`,
       // Build query parameters for the QA endpoint
       const params = new URLSearchParams();
       params.append('question', text);
-      
+
       // Add selected files if any are selected
       if (selectedFiles.length > 0) {
         selectedFiles.forEach(filename => {
@@ -115,7 +113,6 @@ Try adding a URL or uploading a file to get started!`,
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
         },
       });
 
@@ -133,14 +130,14 @@ Try adding a URL or uploading a file to get started!`,
         traversalPath: data.traversal_path || null,
         showGraph: false
       };
-      
+
       setMessages((prev) => [...prev, botMessage]);
       setRetryCount(0);
     } catch (error) {
       console.error("Chat error:", error);
-      
+
       let errorMessage = "I'm having trouble connecting right now. ";
-      
+
       if (!isOnline) {
         errorMessage = "🔌 You appear to be offline. Please check your internet connection.";
       } else if (error.message.includes('500')) {
@@ -160,7 +157,7 @@ Try adding a URL or uploading a file to get started!`,
         timestamp: new Date(),
         isError: true
       };
-      
+
       setMessages((prev) => [...prev, errorBotMessage]);
       setRetryCount(prev => prev + 1);
     } finally {
@@ -194,7 +191,6 @@ Try adding a URL or uploading a file to get started!`,
       const response = await fetch(`${KNOWLEDGE_GRAPH_BASE}/url-upload?url=${encodeURIComponent(urlInput.trim())}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -204,7 +200,7 @@ Try adding a URL or uploading a file to get started!`,
       }
 
       const data = await response.json();
-      
+
       setUrlStatus({
         type: 'success',
         message: `✅ URL processed successfully! Added "${data.filename}" to knowledge graph.`
@@ -212,10 +208,10 @@ Try adding a URL or uploading a file to get started!`,
 
       // Clear the input
       setUrlInput('');
-      
+
       // Refresh the file list to show the new URL-based file
       fetchFiles();
-      
+
       // Add a bot message to inform the user
       const botMessage = {
         id: Date.now() + 1,
@@ -226,7 +222,7 @@ Try adding a URL or uploading a file to get started!`,
         traversalPath: null,
         showGraph: false
       };
-      
+
       setMessages(prev => [...prev, botMessage]);
 
     } catch (error) {
@@ -267,7 +263,7 @@ Try adding a URL or uploading a file to get started!`,
 
         {/* Main Content - Split Layout */}
         <div className="flex h-full">
-          
+
           {/* Left Side - Chat Window */}
           <div className="flex-1 flex flex-col">
         {/* Enhanced Message area */}
@@ -300,7 +296,7 @@ Try adding a URL or uploading a file to get started!`,
 
           {/* Right Side - File List */}
           <div className="w-80 bg-gray-50 border-l border-gray-200 flex flex-col">
-            
+
             {/* URL Input Section */}
             <div className="px-4 py-4 bg-blue-50 border-b border-blue-200">
               <h3 className="text-sm font-semibold text-blue-900 mb-3">🌐 Add URL Content</h3>
@@ -338,7 +334,7 @@ Try adding a URL or uploading a file to get started!`,
                 )}
               </div>
             </div>
-            
+
             {/* File List Header */}
             <div className="px-4 py-4 bg-gray-100 border-b border-gray-200">
               <div className="flex items-center justify-between mb-3">
@@ -347,7 +343,7 @@ Try adding a URL or uploading a file to get started!`,
                   {selectedFiles.length}/{files.length}
                 </span>
               </div>
-              
+
               <p className="text-xs text-gray-600 mb-3">
                 {loading 
                   ? "Loading your files..."
@@ -375,7 +371,7 @@ Try adding a URL or uploading a file to get started!`,
                 </div>
               )}
             </div>
-            
+
             {/* File List */}
         <div className="flex-1 overflow-y-auto p-4">
               {loading ? (

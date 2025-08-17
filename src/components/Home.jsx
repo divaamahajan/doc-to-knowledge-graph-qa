@@ -2,6 +2,15 @@
 import React from "react";
 import "../styles/home.css";
 
+export default function Home() {
+  return (
+    <div className="home-container">
+      <h1>Welcome to the Knowledge Graph App</h1>
+      <p>Navigate through the tabs above to explore different features.</p>
+    </div>
+  );
+}
+
 function Home({ user }) {
   if (user) {
     // Logged-in version of home
