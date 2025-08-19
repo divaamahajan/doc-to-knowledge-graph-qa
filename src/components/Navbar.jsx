@@ -60,22 +60,10 @@ function Navbar() {
               Files
             </Link>
 
-            <Link
-              to="/profile"
-              style={{
-                ...styles.navLink,
-                ...(isActive('/profile') ? styles.activeLink : {})
-              }}
-            >
-              Profile
-            </Link>
-          </>
+            </>
         </div>
 
         <div style={styles.authSection}>
-          <Link to="/login" style={styles.loginButton}>
-            Sign In
-          </Link>
         </div>
       </div>
     </nav>
