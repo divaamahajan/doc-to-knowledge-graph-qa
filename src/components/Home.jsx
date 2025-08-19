@@ -1,36 +1,77 @@
-
-import React from "react";
+import React from 'react';
 import "../styles/home.css";
 
-function Home() {
+const Home = () => {
   return (
-    <div className="home-container">
-      {/* Hero Section */}
+    <div className="app-container">
+      {/* Enhanced Hero Section */}
       <section className="hero-section">
         <div className="hero-content">
+          <div className="hero-badge">
+            <span className="badge-icon">✨</span>
+            <span>Powered by Advanced AI</span>
+          </div>
           <h1 className="hero-title">
-            Welcome to <span className="gradient-text">Knowledge Graph Builder</span>
+            Universal <span className="gradient-text">Knowledge Graph</span> Builder
           </h1>
           <p className="hero-subtitle">
-            Transform your documents into interactive knowledge graphs with AI-powered insights. 
-            Upload files, explore connections, and get intelligent answers from your data.
+            Transform your documents into interactive knowledge graphs with AI-powered analysis, 
+            intelligent Q&A capabilities, and beautiful visualizations that reveal hidden insights.
           </p>
           <div className="hero-buttons">
-            <a href="#features" className="btn-secondary">Learn More</a>
+            <a href="#features" className="btn btn-primary hero-btn">
+              <span>🚀</span>
+              <span>Get Started</span>
+            </a>
+            <a href="#features" className="btn btn-secondary hero-btn">
+              <span>📖</span>
+              <span>Learn More</span>
+            </a>
+          </div>
+          <div className="hero-stats">
+            <div className="stat-item">
+              <div className="stat-number">10K+</div>
+              <div className="stat-label">Documents Processed</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number">50M+</div>
+              <div className="stat-label">Connections Made</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number">99%</div>
+              <div className="stat-label">Accuracy Rate</div>
+            </div>
           </div>
         </div>
+
         <div className="hero-visual">
           <div className="floating-card card-1">
-            <div className="card-icon">🧠</div>
-            <span>AI Q&A</span>
+            <div className="card-icon">📊</div>
+            <div className="card-content">
+              <div className="card-title">Data Analysis</div>
+              <div className="card-desc">Advanced processing</div>
+            </div>
           </div>
           <div className="floating-card card-2">
             <div className="card-icon">🕸️</div>
-            <span>Knowledge Graphs</span>
+            <div className="card-content">
+              <div className="card-title">Graph Builder</div>
+              <div className="card-desc">Interactive networks</div>
+            </div>
           </div>
           <div className="floating-card card-3">
-            <div className="card-icon">📄</div>
-            <span>Document Processing</span>
+            <div className="card-icon">🤖</div>
+            <div className="card-content">
+              <div className="card-title">AI Assistant</div>
+              <div className="card-desc">Smart Q&A system</div>
+            </div>
+          </div>
+          <div className="hero-graph-preview">
+            <div className="graph-node"></div>
+            <div className="graph-node"></div>
+            <div className="graph-node"></div>
+            <div className="graph-connection"></div>
+            <div className="graph-connection"></div>
           </div>
         </div>
       </section>
