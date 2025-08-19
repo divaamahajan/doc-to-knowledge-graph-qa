@@ -1,0 +1,89 @@
+version: '3.5'
+
+services:
+  # postgres:
+  #   container_name: postgres_container
+  #   image: postgres:15
+  #   environment:
+  #     POSTGRES_USER: ${POSTGRES_USER:-postgres}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+  #     POSTGRES_DB: ${POSTGRES_DB:-app_db}
+  #     PGDATA: /var/lib/postgresql/data/pgdata
+  #   volumes:
+  #     - postgres:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   networks:
+  #     - backend_net
+  #   restart: unless-stopped
+
+  # pgadmin:
+  #   container_name: pgadmin_container
+  #   image: dpage/pgadmin4
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+  #     PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+  #     PGADMIN_CONFIG_SERVER_MODE: 'False'
+  #   volumes:
+  #     - pgadmin:/var/lib/pgadmin
+  #   ports:
+  #     - "${PGADMIN_PORT:-5050}:80"
+  #   networks:
+  #     - backend_net
+  #   restart: unless-stopped
+
+  # mongo:
+  #   container_name: mongo_container
+  #   image: mongo:6
+  #   restart: unless-stopped
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-root}
+  #     MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-changeme}
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongo:/data/db
+  #   networks:
+  #     - backend_net
+
+  # mongo-express:
+  #   container_name: mongo_express_container
+  #   image: mongo-express:1.0.0-alpha
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8081:8081"
+  #   environment:
+  #     ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_INITDB_ROOT_USERNAME:-root}
+  #     ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-changeme}
+  #     ME_CONFIG_MONGODB_SERVER: mongo_container
+  #   networks:
+  #     - backend_net
+  #   depends_on:
+  #     - mongo
+
+  backend:
+    container_name: backend_app
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app/backend
+    working_dir: /app/backend
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/backend
+    # depends_on:
+      # - postgres
+      # - mongo
+    networks:
+      - backend_net
+    # environment:
+      # DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@postgres_container:5432/${POSTGRES_DB:-app_db}
+      # MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-root}:${MONGO_INITDB_ROOT_PASSWORD:-changeme}@mongo_container:27017
+
+networks:
+  backend_net:
+    driver: bridge
+
+volumes:
+  postgres:
+  pgadmin:
+  mongo:
