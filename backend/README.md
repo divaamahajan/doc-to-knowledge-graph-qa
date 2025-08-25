@@ -1,10 +1,10 @@
-# 🚀 Universal Knowledge-Graph Builder - Backend
+# 🚀 Document to Knowledge Graph Q&A - Backend
 
 > **High-performance, scalable backend for transforming documents into intelligent knowledge graphs with AI-powered Q&A**
 
-[![Python](https://img.shields.io/badge/python-3.13+-blue)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.116.1+-green)](https://fastapi.tiangolo.com)
-[![Neo4j](https://img.shields.io/badge/Neo4j-5.28.2+-orange)](https://neo4j.com)
+[![Python](https://img.shields.io/badge/python-3.9+-blue)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.116.1-green)](https://fastapi.tiangolo.com)
+[![Neo4j](https://img.shields.io/badge/Neo4j-5.28.2-orange)](https://neo4j.com)
 [![MongoDB](https://img.shields.io/badge/MongoDB-4.14+-green)](https://mongodb.com)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -12,7 +12,7 @@
 
 ## 🎯 **Backend Overview**
 
-The Universal Knowledge-Graph Builder backend is a **high-performance, microservices-based architecture** that transforms unstructured documents into intelligent, queryable knowledge graphs. Built with FastAPI, Neo4j, and MongoDB, it provides:
+The Document to Knowledge Graph Q&A backend is a **high-performance, microservices-based architecture** that transforms unstructured documents into intelligent, queryable knowledge graphs. Built with FastAPI, Neo4j, and MongoDB, it provides:
 
 - **Real-time document processing** with intelligent text extraction
 - **Semantic knowledge graph construction** using advanced NLP techniques
@@ -74,6 +74,7 @@ The Universal Knowledge-Graph Builder backend is a **high-performance, microserv
 - **FastAPI 0.116.1**: High-performance async web framework
 - **Uvicorn 0.35.0**: ASGI server for production deployment
 - **Pydantic 2.11.7**: Data validation and serialization
+- **Starlette 0.47.2**: ASGI framework for web services
 
 ### **Database & Storage**
 - **Neo4j 5.28.2**: Graph database for knowledge relationships
@@ -82,14 +83,17 @@ The Universal Knowledge-Graph Builder backend is a **high-performance, microserv
 - **PyMongo 4.14.0**: MongoDB Python driver
 
 ### **AI & Machine Learning**
-- **Claude AI**: Advanced reasoning and comprehension
-- **OpenAI**: Text embeddings and vectorization
+- **Anthropic 0.64.0**: Claude AI integration for reasoning
+- **OpenAI 1.99.9**: Text embeddings and vectorization
 - **LangChain 0.3.27**: AI workflow orchestration
 - **LangChain Neo4j 0.5.0**: Graph-aware AI operations
+- **LangChain OpenAI 0.3.30**: OpenAI integration
+- **LangChain Text Splitters 0.3.9**: Intelligent text chunking
 
 ### **Document Processing**
 - **PyMuPDF 1.26.3**: PDF text extraction and processing
-- **Pillow 11.3.0**: Image processing and OCR support
+- **Pillow 11.3.0**: Image processing and manipulation
+- **Pytesseract 0.3.13**: OCR for image text extraction
 - **BeautifulSoup4 4.13.4**: Web scraping and HTML parsing
 - **Requests 2.32.4**: HTTP client for URL ingestion
 
@@ -97,30 +101,39 @@ The Universal Knowledge-Graph Builder backend is a **high-performance, microserv
 - **Authlib 1.6.1**: OAuth2 authentication
 - **Python-Jose 3.5.0**: JWT token handling
 - **Google Auth 2.40.3**: Google OAuth integration
-- **Cryptography 45.0.6**: Encryption and security
+
+### **Communication & Notifications**
+- **Discord.py 2.5.2**: Discord bot integration
+- **HTTPx 0.28.1**: Modern HTTP client
+
+### **Utilities**
+- **Tqdm 4.67.1**: Progress bars for long operations
+- **NumPy 2.0.2**: Numerical computations
+- **Python-dotenv 1.1.1**: Environment variable management
+- **Python-multipart 0.0.20**: File upload handling
 
 ---
 
 ## 📁 **Project Structure**
 
 ```
-backend-p5/
+backend/
 ├── main.py                      # FastAPI application entry point
 ├── environment.py               # Environment configuration and constants
 ├── logger.py                    # Logging configuration
-├── requirements.txt             # Python dependencies
+├── requirements.txt             # Python dependencies 
 ├── Dockerfile                   # Container configuration
 ├── docker-compose.yaml          # Multi-service orchestration
 ├── run.sh                       # Development startup script
 │
 ├── routers/                     # API route definitions
 │   ├── __init__.py
-│   ├── auth.py                  # Authentication endpoints
+│   ├── auth.py                  # Authentication endpoints (Google OAuth)
 │   ├── chat.py                  # Chat and conversation APIs
-│   ├── crud.py                  # CRUD operations
-│   ├── file_handler.py          # File upload/download
-│   ├── knowledge_graph.py       # Core KG operations
-│   ├── notify.py                # Notification system
+│   ├── crud.py                  # CRUD operations for data management
+│   ├── file_handler.py          # File upload/download operations
+│   ├── knowledge_graph.py       # Core KG operations & Q&A endpoints
+│   ├── notify.py                # Discord notification system
 │   └── ping.py                  # Health check endpoints
 │
 ├── models/                      # Data models and schemas
@@ -144,7 +157,11 @@ backend-p5/
 │   └── mongo.py                 # MongoDB connection management
 │
 └── tests/                       # Test suite
-    └── __init__.py
+    ├── __init__.py
+    ├── test_*.py                # Individual test files
+    └── tests/
+        ├── test_knowledge_graph_enhanced.py
+        └── test_url_ingestion.py
 ```
 
 ---
@@ -153,7 +170,7 @@ backend-p5/
 
 ### **Prerequisites**
 
-- **Python 3.13+**
+- **Python 3.9+** (3.13+ recommended)
 - **Neo4j 5.x** (local or cloud instance)
 - **MongoDB 4.x** (local or cloud instance)
 - **Claude AI API key**
@@ -163,8 +180,8 @@ backend-p5/
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-org/universal-kg-builder.git
-cd universal-kg-builder/backend-p5
+git clone <your-repository-url>
+cd doc-to-knowledge-graph-qa/backend
 
 # 2. Create virtual environment
 python3 -m venv .venv
@@ -180,6 +197,8 @@ cp .env.example .env
 
 ### **Environment Variables**
 
+Create a `.env` file with the following variables:
+
 ```bash
 # Database Configuration
 NEO4J_URI=bolt://localhost:7687
@@ -187,7 +206,7 @@ NEO4J_USER=neo4j
 NEO4J_PASS=your_password
 
 MONGO_URI=mongodb://localhost:27017
-MONGO_DB_NAME=kg_builder
+MONGO_DB_NAME=doc_to_kg_qa
 
 # AI API Keys
 CLAUDE_API_KEY=your_claude_api_key
@@ -200,7 +219,11 @@ SESSION_SECRET_KEY=your_session_secret
 
 # Application Settings
 FRONTEND_URL=http://localhost:3000
+PROJECT_NAME=doc-to-kg-qa
 ENV=development
+
+# Discord Bot (Optional)
+DISCORD_BOT_TOKEN=your_discord_bot_token
 ```
 
 ### **Database Setup**
@@ -245,31 +268,62 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
 #### **Document Ingestion**
 ```http
 POST /knowledge-graph/upload
-POST /knowledge-graph/url-upload
+Content-Type: multipart/form-data
+# Upload file for processing
+
+POST /knowledge-graph/url-upload?url={url}
+# Upload content from URL
+
 GET /knowledge-graph/files
+# List all uploaded files
+
 DELETE /knowledge-graph/files/{filename}
+# Delete specific file and its knowledge graph
 ```
 
 #### **Question Answering**
 ```http
-POST /knowledge-graph/qa
-GET /knowledge-graph/graph-traversal/{question_id}
+POST /knowledge-graph/qa?question={question}&filenames={filename1,filename2}
+# Ask questions against knowledge graph
+
+GET /knowledge-graph/graph-traversal
+# Get graph traversal path for evidence visualization
 ```
 
 #### **File Management**
 ```http
 GET /file-handler/files
+# List files with metadata
+
 POST /file-handler/upload
+# Upload files to storage
+
 GET /file-handler/download/{filename}
+# Download specific file
+
 DELETE /file-handler/files/{filename}
+# Delete file from storage
 ```
 
 #### **Authentication**
 ```http
-GET /auth/login
-GET /auth/callback
-POST /auth/logout
-GET /auth/profile
+GET /auth/google
+# Initiate Google OAuth flow
+
+GET /auth/google/callback
+# Google OAuth callback
+
+POST /auth/google/verify
+# Verify Google ID token
+```
+
+#### **Health & Status**
+```http
+GET /ping
+# Basic health check
+
+GET /notify/discord/info
+# Discord notification info
 ```
 
 ### **API Response Format**
@@ -278,19 +332,26 @@ GET /auth/profile
 {
   "status": "success",
   "data": {
-    "answer": "AI-generated response",
+    "answer": "AI-generated response based on your documents",
+    "question": "Original user question",
     "sources": [
       {
         "filename": "document.pdf",
         "section": "section_name",
         "chunk_index": 5,
-        "chunk_id": "unique_chunk_id"
+        "chunk_id": "unique_chunk_id",
+        "user_id": "user_identifier"
       }
     ],
+    "total_sources": 3,
     "traversal_path": {
       "nodes": [...],
       "edges": [...],
-      "metadata": {...}
+      "metadata": {
+        "total_nodes": 15,
+        "total_edges": 23,
+        "files_involved": ["doc1.pdf", "doc2.txt"]
+      }
     }
   }
 }
@@ -306,8 +367,6 @@ GET /auth/profile
 (User)-[:UPLOADED]->(File)-[:HAS_CHUNK]->(Chunk)
 (Chunk)-[:NEXT]->(Chunk)
 (Chunk)-[:SIMILAR_TO]->(Chunk)
-(Chunk)-[:MENTIONS]->(Concept)
-(Concept)-[:RELATED_TO]->(Concept)
 ```
 
 ### **Node Properties**
@@ -328,9 +387,14 @@ CREATE (u:User {
 CREATE (f:File {
   filename: String,
   user_id: String,
-  content_type: String,
+  source: String,
   total_chunks: Integer,
-  metadata: Map
+  processed_date: DateTime,
+  pages_processed: Integer,
+  images_processed: Integer,
+  successful_ocr: Integer,
+  failed_ocr: Integer,
+  extraction_errors: Integer
 })
 ```
 
@@ -339,11 +403,12 @@ CREATE (f:File {
 CREATE (c:Chunk {
   id: String,
   user_id: String,
+  filename: String,
   text: String,
   chunk_index: Integer,
   section: String,
-  textEmbedding: Vector,
-  metadata: Map
+  length: Integer,
+  textEmbedding: Vector
 })
 ```
 
@@ -351,13 +416,14 @@ CREATE (c:Chunk {
 
 ```cypher
 // Create vector index for semantic search
-CALL db.index.vector.createNodeIndex(
-  'pdf_chunks',
-  'Chunk',
-  'textEmbedding',
-  1536,
-  'cosine'
-)
+CREATE VECTOR INDEX pdf_chunks IF NOT EXISTS
+FOR (c:Chunk) ON (c.textEmbedding)
+OPTIONS {
+  indexConfig: {
+    `vector.dimensions`: 1536,
+    `vector.similarity_function`: 'cosine'
+  }
+}
 ```
 
 ---
@@ -373,7 +439,7 @@ Size Validation → Metadata Extraction
 **Supported Formats:**
 - **TXT**: Direct text processing
 - **PDF**: PyMuPDF extraction with OCR fallback
-- **Images**: Tesseract OCR processing
+- **Images**: Tesseract OCR processing (PNG, JPG, JPEG, TIFF, BMP, GIF)
 - **URLs**: BeautifulSoup web scraping
 
 ### **2. Processing Phase**
@@ -398,13 +464,15 @@ MongoDB Document Storage → Vector Index Creation
 - **Graph relationships** in Neo4j
 - **Large documents** in MongoDB GridFS
 - **Vector embeddings** in Neo4j vector index
-- **Metadata** preserved in both systems
+- **User isolation** ensuring data privacy
 
 ---
 
 ## 🤖 **AI Integration**
 
 ### **Claude AI Integration**
+
+The system uses Claude AI (Anthropic) for sophisticated reasoning and question answering:
 
 ```python
 class ClaudeQASystem:
@@ -415,7 +483,7 @@ class ClaudeQASystem:
         # Retrieve relevant documents
         docs = self.retriever.get_relevant_documents(question)
         
-        # Create context-aware prompt
+        # Build context from retrieved documents
         context = self._build_context(docs)
         
         # Generate response with Claude
@@ -423,7 +491,7 @@ class ClaudeQASystem:
             model="claude-3-5-sonnet-20241022",
             max_tokens=2000,
             system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": user_prompt}]
         )
         
         return {
@@ -433,6 +501,8 @@ class ClaudeQASystem:
 ```
 
 ### **Vector Search & Retrieval**
+
+User-scoped semantic search with Neo4j:
 
 ```python
 def setup_qa_system(user_id, filenames=None):
@@ -447,13 +517,12 @@ def setup_qa_system(user_id, filenames=None):
     RETURN c.text, score, metadata
     """
     
-    # Create vector store with Neo4j
     vector_store = Neo4jVector.from_existing_index(
         embedding=OpenAIEmbeddings(),
         url=NEO4J_URI,
         username=NEO4J_USER,
         password=NEO4J_PASS,
-        index_name=VECTOR_INDEX_NAME,
+        index_name="pdf_chunks",
         retrieval_query=retrieval_query
     )
     
@@ -462,49 +531,15 @@ def setup_qa_system(user_id, filenames=None):
 
 ---
 
-## 📊 **Performance & Scalability**
-
-### **Performance Metrics**
-
-**Document Processing:**
-- **TXT files**: ~1000 documents/second
-- **PDF files**: ~100 pages/second
-- **Images**: ~50 images/second
-- **URLs**: ~200 URLs/second
-
-**Query Performance:**
-- **Vector search**: <50ms response time
-- **Graph traversal**: <100ms for complex queries
-- **AI generation**: 2-5 seconds depending on complexity
-- **Concurrent users**: 100+ simultaneous users
-
-### **Scalability Features**
-
-**Horizontal Scaling:**
-- **Stateless API design** for easy replication
-- **Database connection pooling** for efficient resource usage
-- **Async request handling** for high concurrency
-- **Microservices architecture** for independent scaling
-
-**Resource Optimization:**
-- **Memory-efficient processing** with streaming
-- **Intelligent caching** for frequently accessed data
-- **Batch processing** for large document sets
-- **Connection pooling** for database efficiency
-
----
-
 ## 🔒 **Security & Authentication**
 
 ### **Authentication Flow**
 
-```
 1. User initiates OAuth2 flow with Google
 2. Google returns authorization code
 3. Backend exchanges code for access token
 4. Backend creates JWT session token
 5. User authenticated for subsequent requests
-```
 
 ### **Security Features**
 
@@ -513,11 +548,10 @@ def setup_qa_system(user_id, filenames=None):
 - **OAuth2 integration** with Google
 - **User isolation** - users can only access their own data
 - **Input validation** with Pydantic models
-- **SQL injection protection** with parameterized queries
+- **Parameterized queries** to prevent injection attacks
 
 **API Security:**
 - **CORS configuration** for frontend integration
-- **Rate limiting** to prevent abuse
 - **Request validation** with automatic error handling
 - **Secure headers** with security middleware
 
@@ -525,57 +559,29 @@ def setup_qa_system(user_id, filenames=None):
 
 ## 🧪 **Testing & Quality Assurance**
 
-### **Testing Strategy**
+### **Running Tests**
 
-**Unit Tests:**
 ```bash
-# Run unit tests
-python -m pytest tests/unit/ -v
+# Run all tests
+python -m pytest
+
+# Run specific test files
+python -m pytest tests/test_knowledge_graph_enhanced.py -v
 
 # Run with coverage
-python -m pytest tests/unit/ --cov=utils --cov-report=html
+python -m pytest --cov=utils --cov=routers --cov-report=html
+
+# Test only without Neo4j dependencies
+python -m pytest tests/ -k "not neo4j"
 ```
 
-**Integration Tests:**
-```bash
-# Run integration tests
-python -m pytest tests/integration/ -v
+### **Available Tests**
 
-# Test with real databases
-python -m pytest tests/integration/ --db=real
-```
-
-**Performance Tests:**
-```bash
-# Load testing
-python -m pytest tests/performance/ -v
-
-# Benchmark specific endpoints
-python -m pytest tests/performance/test_qa_performance.py
-```
-
-### **Code Quality**
-
-**Linting & Formatting:**
-```bash
-# Run flake8
-flake8 . --max-line-length=88 --extend-ignore=E203
-
-# Run black formatting
-black . --line-length=88
-
-# Run isort
-isort . --profile=black
-```
-
-**Type Checking:**
-```bash
-# Run mypy
-mypy . --ignore-missing-imports
-
-# Run with strict mode
-mypy . --strict --ignore-missing-imports
-```
+- **Unit Tests**: Individual function testing
+- **Integration Tests**: API endpoint testing
+- **URL Processing**: Web scraping functionality
+- **Knowledge Graph**: Core KG operations
+- **File Upload**: Document processing pipeline
 
 ---
 
@@ -614,55 +620,9 @@ WORKERS=4
 # Application health
 curl http://localhost:8000/ping
 
-# Database connectivity
-curl http://localhost:8000/health/db
-
-# AI service status
-curl http://localhost:8000/health/ai
+# API documentation
+curl http://localhost:8000/docs
 ```
-
----
-
-## 📈 **Monitoring & Observability**
-
-### **Logging**
-
-**Structured Logging:**
-```python
-import logging
-from logger import setup_logger
-
-logger = setup_logger(__name__)
-
-logger.info("Processing document", extra={
-    "filename": filename,
-    "user_id": user_id,
-    "file_size": file_size,
-    "processing_time": processing_time
-})
-```
-
-**Log Levels:**
-- **DEBUG**: Detailed processing information
-- **INFO**: General application events
-- **WARNING**: Potential issues
-- **ERROR**: Error conditions
-- **CRITICAL**: System failures
-
-### **Metrics & Monitoring**
-
-**Key Metrics:**
-- **Request latency** by endpoint
-- **Error rates** by operation type
-- **Document processing** throughput
-- **AI response** generation time
-- **Database query** performance
-
-**Monitoring Tools:**
-- **Prometheus**: Metrics collection
-- **Grafana**: Visualization and alerting
-- **Jaeger**: Distributed tracing
-- **ELK Stack**: Log aggregation
 
 ---
 
@@ -675,8 +635,8 @@ logger.info("Processing document", extra={
 # Check Neo4j status
 docker ps | grep neo4j
 
-# Verify connection
-cypher-shell -u neo4j -p your_password -a bolt://localhost:7687
+# Test connection
+python -c "from neo4j import GraphDatabase; print('Neo4j connection test')"
 ```
 
 **2. MongoDB Connection Issues**
@@ -684,19 +644,23 @@ cypher-shell -u neo4j -p your_password -a bolt://localhost:7687
 # Check MongoDB status
 docker ps | grep mongodb
 
-# Verify connection
-mongosh mongodb://localhost:27017
+# Test connection
+python -c "from pymongo import MongoClient; print('MongoDB connection test')"
 ```
 
 **3. AI API Issues**
 ```bash
-# Check API key validity
-curl -H "Authorization: Bearer $CLAUDE_API_KEY" \
-     https://api.anthropic.com/v1/models
+# Verify API keys in environment
+python -c "import os; print('Claude:', bool(os.getenv('CLAUDE_API_KEY'))); print('OpenAI:', bool(os.getenv('OPENAI_API_KEY')))"
+```
 
-# Verify rate limits
-curl -H "Authorization: Bearer $OPENAI_API_KEY" \
-     https://api.openai.com/v1/models
+**4. Dependency Issues**
+```bash
+# Reinstall cleaned dependencies
+pip install -r requirements.txt --force-reinstall
+
+# Check for conflicts
+pip check
 ```
 
 ### **Debug Mode**
@@ -717,61 +681,47 @@ uvicorn main:app --reload --log-level debug
 ### **Development Setup**
 
 ```bash
-# 1. Fork the repository
-# 2. Clone your fork
-git clone https://github.com/your-username/universal-kg-builder.git
+# 1. Fork and clone the repository
+git clone https://github.com/your-username/doc-to-knowledge-graph-qa.git
 
-# 3. Create feature branch
+# 2. Create feature branch
 git checkout -b feature/amazing-feature
+
+# 3. Install dependencies
+cd backend
+pip install -r requirements.txt
 
 # 4. Make changes and test
 python -m pytest tests/
 python -m flake8 .
-python -m black . --check
 
 # 5. Commit and push
-git commit -m "Add amazing feature"
+git commit -m "feat: add amazing feature"
 git push origin feature/amazing-feature
-
-# 6. Create pull request
 ```
 
 ### **Code Standards**
 
 **Python Code Style:**
-- **Black**: Code formatting
-- **Flake8**: Linting and style checking
-- **isort**: Import sorting
-- **mypy**: Type checking
-
-**Commit Messages:**
-```
-feat: add new feature
-fix: resolve bug
-docs: update documentation
-test: add or update tests
-refactor: code restructuring
-style: formatting changes
-```
+- **PEP 8**: Python style guide compliance
+- **Type hints**: Use type annotations where appropriate
+- **Docstrings**: Document functions and classes
+- **Error handling**: Proper exception management
 
 ---
 
 ## 📚 **Additional Resources**
 
 ### **Documentation**
-- **API Reference**: `/docs` (Swagger UI)
-- **ReDoc**: `/redoc` (Alternative API docs)
-- **OpenAPI Schema**: `/openapi.json`
+- **API Reference**: `http://localhost:8000/docs` (Swagger UI)
+- **ReDoc**: `http://localhost:8000/redoc` (Alternative API docs)
+- **OpenAPI Schema**: `http://localhost:8000/openapi.json`
 
-### **Examples**
-- **Postman Collection**: `docs/postman_collection.json`
-- **cURL Examples**: `docs/curl_examples.md`
-- **Python Client**: `docs/python_client_examples.py`
-
-### **Community**
-- **GitHub Issues**: Bug reports and feature requests
-- **Discussions**: General questions and ideas
-- **Wiki**: Additional documentation and guides
+### **Dependencies**
+- **FastAPI**: [fastapi.tiangolo.com](https://fastapi.tiangolo.com)
+- **Neo4j**: [neo4j.com/docs](https://neo4j.com/docs)
+- **LangChain**: [langchain.readthedocs.io](https://langchain.readthedocs.io)
+- **Claude AI**: [docs.anthropic.com](https://docs.anthropic.com)
 
 ---
 

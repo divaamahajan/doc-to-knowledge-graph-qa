@@ -4,7 +4,7 @@ echo "🧪 Comprehensive Knowledge Graph Visualizer Testing"
 echo "===================================================="
 
 # Change to frontend directory
-cd frontend-p5
+cd frontend
 
 echo "📁 Current directory: $(pwd)"
 echo "📦 Node version: $(node --version)"

@@ -14,11 +14,11 @@ export default function QA() {
       sender: "bot", 
       text: `🧠 Hello! I'm your Knowledge Graph assistant. You can:
 
-📁 Upload files and ask questions about them
-🌐 Add URLs to analyze web content
-💬 Ask me anything about your knowledge base!
+📁 Select files to search through (upload new ones in File Handler)
+🌐 Select URLs to search through (add new ones in URL Handler)  
+💬 Ask me anything about your selected sources!
 
-Try adding a URL or uploading a file to get started!`,
+Choose files and URLs from the sidebar to get started!`,
       timestamp: new Date()
     },
   ]);
@@ -28,14 +28,15 @@ Try adding a URL or uploading a file to get started!`,
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [urlInput, setUrlInput] = useState('');
-  const [isUrlLoading, setIsUrlLoading] = useState(false);
-  const [urlStatus, setUrlStatus] = useState(null);
+  const [selectedUrls, setSelectedUrls] = useState([]);
+  const [urls, setUrls] = useState([]);
+  const [urlLoading, setUrlLoading] = useState(false);
 
   const messagesEndRef = useRef(null);
 
     useEffect(() => {
       fetchFiles();
+      fetchUrls();
     }, []);
 
   const fetchFiles = async () => {
@@ -49,6 +50,20 @@ Try adding a URL or uploading a file to get started!`,
       console.error(err);
     }
     setLoading(false);
+  };
+
+  const fetchUrls = async () => {
+    setUrlLoading(true);
+    try {
+      const res = await fetch(`${KNOWLEDGE_GRAPH_BASE}/url-list`);
+      if (!res.ok) throw new Error("Failed to fetch URLs");
+      const data = await res.json();
+      setUrls(data.urls || []);
+    } catch (err) {
+      console.error(err);
+      setUrls([]);
+    }
+    setUrlLoading(false);
   };
 
   const toggleFileSelection = (filename) => {
@@ -65,6 +80,22 @@ Try adding a URL or uploading a file to get started!`,
 
   const clearSelection = () => {
     setSelectedFiles([]);
+  };
+
+  const toggleUrlSelection = (url) => {
+    if (selectedUrls.includes(url)) {
+      setSelectedUrls(prev => prev.filter(u => u !== url));
+    } else {
+      setSelectedUrls(prev => [...prev, url]);
+    }
+  };
+
+  const selectAllUrls = () => {
+    setSelectedUrls(urls.map(u => u.url));
+  };
+
+  const clearUrlSelection = () => {
+    setSelectedUrls([]);
   };
 
   useEffect(() => {
@@ -106,6 +137,17 @@ Try adding a URL or uploading a file to get started!`,
       if (selectedFiles.length > 0) {
         selectedFiles.forEach(filename => {
           params.append('filenames', filename);
+        });
+      }
+
+      // Add selected URLs (convert to filenames) if any are selected
+      if (selectedUrls.length > 0) {
+        selectedUrls.forEach(url => {
+          // Find the corresponding filename for this URL
+          const urlData = urls.find(u => u.url === url);
+          if (urlData && urlData.filename) {
+            params.append('filenames', urlData.filename);
+          }
         });
       }
 
@@ -169,7 +211,13 @@ Try adding a URL or uploading a file to get started!`,
     setMessages([{
       id: 1,
       sender: "bot", 
-      text: "👋 Hello! I'm your AI assistant. How can I help you today?",
+      text: `🧠 Hello! I'm your Knowledge Graph assistant. You can:
+
+📁 Select files to search through (upload new ones in File Handler)
+🌐 Select URLs to search through (add new ones in URL Handler)  
+💬 Ask me anything about your selected sources!
+
+Choose files and URLs from the sidebar to get started!`,
       timestamp: new Date()
     }]);
     setRetryCount(0);
@@ -181,60 +229,7 @@ Try adding a URL or uploading a file to get started!`,
     ));
   };
 
-  const handleUrlSubmit = async () => {
-    if (!urlInput.trim() || isUrlLoading) return;
 
-    setIsUrlLoading(true);
-    setUrlStatus(null);
-
-    try {
-      const response = await fetch(`${KNOWLEDGE_GRAPH_BASE}/url-upload?url=${encodeURIComponent(urlInput.trim())}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      setUrlStatus({
-        type: 'success',
-        message: `✅ URL processed successfully! Added "${data.filename}" to knowledge graph.`
-      });
-
-      // Clear the input
-      setUrlInput('');
-
-      // Refresh the file list to show the new URL-based file
-      fetchFiles();
-
-      // Add a bot message to inform the user
-      const botMessage = {
-        id: Date.now() + 1,
-        sender: "bot",
-        text: `🌐 I've successfully processed the URL and added "${data.filename}" to your knowledge graph. You can now ask questions about this content!`,
-        timestamp: new Date(),
-        sources: [],
-        traversalPath: null,
-        showGraph: false
-      };
-
-      setMessages(prev => [...prev, botMessage]);
-
-    } catch (error) {
-      console.error('URL processing error:', error);
-      setUrlStatus({
-        type: 'error',
-        message: `❌ Failed to process URL: ${error.message}`
-      });
-    } finally {
-      setIsUrlLoading(false);
-    }
-  };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4">
@@ -297,43 +292,109 @@ Try adding a URL or uploading a file to get started!`,
           {/* Right Side - File List */}
           <div className="w-80 bg-gray-50 border-l border-gray-200 flex flex-col">
 
-            {/* URL Input Section */}
+            {/* URL List Header */}
             <div className="px-4 py-4 bg-blue-50 border-b border-blue-200">
-              <h3 className="text-sm font-semibold text-blue-900 mb-3">🌐 Add URL Content</h3>
-              <div className="space-y-3">
-                <input
-                  type="url"
-                  placeholder="Enter URL to analyze..."
-                  className="w-full px-3 py-2 text-sm border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleUrlSubmit()}
-                />
-                <button
-                  onClick={handleUrlSubmit}
-                  disabled={!urlInput.trim() || isUrlLoading}
-                  className="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isUrlLoading ? (
-                    <span className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Processing...
-                    </span>
-                  ) : (
-                    'Add URL to Knowledge Graph'
-                  )}
-                </button>
-                {urlStatus && (
-                  <div className={`text-xs p-2 rounded ${
-                    urlStatus.type === 'success' 
-                      ? 'bg-green-100 text-green-800 border border-green-200' 
-                      : 'bg-red-100 text-red-800 border border-red-200'
-                  }`}>
-                    {urlStatus.message}
-                  </div>
-                )}
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-blue-900">🌐 Select URLs</h3>
+                <span className="text-xs text-blue-700 bg-white px-2 py-1 rounded-full">
+                  {selectedUrls.length}/{urls.length}
+                </span>
               </div>
+
+              <p className="text-xs text-blue-700 mb-3">
+                {urlLoading 
+                  ? "Loading your URLs..."
+                  : urls.length === 0 
+                  ? "No URLs uploaded yet." 
+                  : "Choose URLs to search through."}
+              </p>
+
+              {urls.length > 0 && (
+                <div className="flex space-x-2">
+                  <button
+                    onClick={selectAllUrls}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    Select All
+                  </button>
+                  {selectedUrls.length > 0 && (
+                    <button
+                      onClick={clearUrlSelection}
+                      className="text-xs text-blue-400 hover:text-blue-600 font-medium"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
+
+            {/* URL List */}
+            <div className="flex-1 overflow-y-auto p-4 max-h-64">
+              {urlLoading ? (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent mb-2"></div>
+                  <p className="text-xs text-blue-600">Loading URLs...</p>
+                </div>
+              ) : urls.length === 0 ? (
+                <div className="text-center py-8">
+                  <svg className="w-12 h-12 text-blue-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  <p className="text-xs text-blue-500 text-center">No URLs available</p>
+                  <p className="text-xs text-blue-400 text-center mt-1">Add URLs in URL Handler</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {urls.map((urlData, index) => (
+                    <label 
+                      key={urlData.url} 
+                      className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                        selectedUrls.includes(urlData.url)
+                          ? "bg-blue-50 border-blue-300 shadow-sm"
+                          : "bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-300"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedUrls.includes(urlData.url)}
+                        onChange={() => toggleUrlSelection(urlData.url)}
+                        className="rounded border-blue-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-2">
+                          <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                          </svg>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-blue-700 truncate" title={urlData.url}>
+                              {urlData.domain}
+                            </p>
+                            <p className="text-xs text-blue-500 truncate" title={urlData.url}>
+                              {urlData.url.length > 40 ? urlData.url.substring(0, 40) + '...' : urlData.url}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* URL Selection Summary */}
+            {selectedUrls.length > 0 && (
+              <div className="p-4 bg-blue-50 border-t border-blue-200">
+                <div className="text-xs text-blue-700">
+                  <strong>{selectedUrls.length}</strong> URL{selectedUrls.length !== 1 ? 's' : ''} selected
+                </div>
+                <div className="text-xs text-blue-600 mt-1">
+                  {selectedUrls.length === 0 
+                    ? "All URLs will be searched" 
+                    : "Only selected URLs will be searched"}
+                </div>
+              </div>
+            )}
 
             {/* File List Header */}
             <div className="px-4 py-4 bg-gray-100 border-b border-gray-200">
@@ -372,7 +433,6 @@ Try adding a URL or uploading a file to get started!`,
               )}
             </div>
 
-            {/* File List */}
         <div className="flex-1 overflow-y-auto p-4">
               {loading ? (
                 <div className="text-center py-8">
@@ -420,16 +480,28 @@ Try adding a URL or uploading a file to get started!`,
               )}
             </div>
 
-            {/* Selection Summary */}
+            {/* File Selection Summary */}
             {selectedFiles.length > 0 && (
               <div className="p-4 bg-purple-50 border-t border-purple-200">
                 <div className="text-xs text-purple-700">
                   <strong>{selectedFiles.length}</strong> file{selectedFiles.length !== 1 ? 's' : ''} selected
                 </div>
                 <div className="text-xs text-purple-600 mt-1">
-                  {selectedFiles.length === 0 
-                    ? "All files will be searched" 
-                    : "Only selected files will be searched"}
+                  Only selected files will be searched
+                </div>
+              </div>
+            )}
+
+            {/* Combined Selection Summary */}
+            {(selectedFiles.length > 0 || selectedUrls.length > 0) && (
+              <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 border-t border-gray-200">
+                <div className="text-xs text-gray-700 font-medium">
+                  Search Scope: {selectedFiles.length + selectedUrls.length} item{selectedFiles.length + selectedUrls.length !== 1 ? 's' : ''} selected
+                </div>
+                <div className="text-xs text-gray-600 mt-1">
+                  {selectedFiles.length > 0 && `${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}`}
+                  {selectedFiles.length > 0 && selectedUrls.length > 0 && ' + '}
+                  {selectedUrls.length > 0 && `${selectedUrls.length} URL${selectedUrls.length !== 1 ? 's' : ''}`}
                 </div>
               </div>
             )}

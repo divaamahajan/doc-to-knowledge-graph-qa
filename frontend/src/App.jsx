@@ -5,10 +5,16 @@ import Home from "./components/Home";
 import Chat from "./components/chatbot/ChatWindow";
 import QA from "./components/QAchatbot/QAChatWindow";
 import Filehandler from "./components/filehandler/Filehandler";
+import URLHandler from "./components/urlhandler/URLHandler";
 
 function App() {
   return (
-    <Router>
+    <Router
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }}
+    >
       <Navbar />
 
       <Routes>
@@ -17,6 +23,7 @@ function App() {
         <Route path="/chat" element={<Chat />} />
         <Route path="/qa" element={<QA />} />
         <Route path="/filehandler" element={<Filehandler />} />
+        <Route path="/urlhandler" element={<URLHandler />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

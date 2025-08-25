@@ -47,11 +47,31 @@ const Message = ({ message, onToggleGraph }) => {
                 <div className="mb-2">
                   <span className="text-xs font-medium text-gray-600">Sources:</span>
                   <div className="mt-1 space-y-1">
-                    {message.sources.map((source, idx) => (
-                                           <div key={idx} className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
-                       📄 {source.filename} (Section: {source.section})
-                     </div>
-                    ))}
+                    {[...new Set(message.sources.map(source => {
+                      // If source has original_url, use that; otherwise use filename
+                      return source.original_url || source.filename;
+                    }))].map((sourceDisplay, idx) => {
+                      // Determine if this is a URL or filename for appropriate icon and styling
+                      const isUrl = sourceDisplay && (sourceDisplay.startsWith('http://') || sourceDisplay.startsWith('https://'));
+                      const icon = isUrl ? '🔗' : '📄';
+                      
+                      return (
+                        <div key={idx} className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
+                          {isUrl ? (
+                            <a 
+                              href={sourceDisplay} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              {icon} {sourceDisplay}
+                            </a>
+                          ) : (
+                            <span>{icon} {sourceDisplay}</span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
                 

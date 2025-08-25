@@ -60,6 +60,16 @@ function Navbar() {
               Files
             </Link>
 
+            <Link
+              to="/urlhandler"
+              style={{
+                ...styles.navLink,
+                ...(isActive('/urlhandler') ? styles.activeLink : {})
+              }}
+            >
+              URLs
+            </Link>
+
             </>
         </div>
 

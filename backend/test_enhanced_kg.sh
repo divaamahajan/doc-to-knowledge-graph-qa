@@ -7,7 +7,7 @@ echo "============================================="
 source .venv/bin/activate
 
 # Change to backend directory
-cd backend-p5
+cd backend
 
 echo "📁 Current directory: $(pwd)"
 echo "🐍 Python version: $(python3 --version)"

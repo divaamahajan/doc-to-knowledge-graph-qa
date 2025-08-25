@@ -32,22 +32,57 @@ VECTOR_EMBEDDING_PROPERTY = 'textEmbedding'
 
 
 
-# Initialize Neo4j connection
-kg = Neo4jGraph(url=NEO4J_URI, username=NEO4J_USER, password=NEO4J_PASS)
+# Neo4j connection (lazy-loaded)
+kg = None
+
+def get_neo4j_connection():
+    """Get Neo4j connection with lazy loading and error handling"""
+    global kg
+    if kg is None:
+        try:
+            if not NEO4J_URI or not NEO4J_USER or not NEO4J_PASS:
+                logger.warning("Neo4j credentials not provided. Knowledge graph features will be disabled.")
+                return None
+            
+            kg = Neo4jGraph(url=NEO4J_URI, username=NEO4J_USER, password=NEO4J_PASS)
+            logger.info("Neo4j connection established successfully")
+            return kg
+        except Exception as e:
+            logger.error(f"Failed to connect to Neo4j: {e}")
+            logger.warning("Knowledge graph features will be disabled. Please check Neo4j configuration.")
+            return None
+    return kg
+
+def safe_kg_query(query, params=None):
+    """Execute Neo4j query with error handling"""
+    kg = get_neo4j_connection()
+    if kg is None:
+        return []
+    
+    try:
+        return kg.query(query, params=params or {})
+    except Exception as e:
+        logger.error(f"Neo4j query failed: {e}")
+        return []
+
+def neo4j_available():
+    """Check if Neo4j is available"""
+    return get_neo4j_connection() is not None
 
 
 
 def ensure_constraints():
     """Create necessary unique constraints once"""
+    if not neo4j_available():
+        return False
+    
     constraints = {
         "unique_user": "CREATE CONSTRAINT unique_user IF NOT EXISTS FOR (u:User) REQUIRE u.user_id IS UNIQUE",
         "unique_chunk": "CREATE CONSTRAINT unique_chunk IF NOT EXISTS FOR (c:Chunk) REQUIRE c.id IS UNIQUE"
     }
     for name, query in constraints.items():
-        try:
-            kg.query(query)
-        except Exception:
-            pass  # Constraint already exists
+        safe_kg_query(query)
+    return True
 
 def split_text(text, chunk_size=2000, chunk_overlap=400):
     """Split text into intelligently sized chunks"""
@@ -62,8 +97,14 @@ def split_text(text, chunk_size=2000, chunk_overlap=400):
 
 
 def create_or_get_user(user_id, name=None, email=None):
-    ensure_constraints()
-    kg.query("""
+    if not neo4j_available():
+        logger.warning("Neo4j unavailable. User creation skipped.")
+        return user_id
+    
+    if not ensure_constraints():
+        return user_id
+    
+    safe_kg_query("""
         MERGE (u:User {user_id: $user_id})
         SET u.name = COALESCE($name, u.name),
             u.email = COALESCE($email, u.email),
@@ -156,11 +197,13 @@ def delete_file_knowledge_graph(filename, user_id):
 def create_or_update_file_node(filename, user_id, chunks, metadata):
     """Create or update File node and its relationship with the user"""
     ensure_constraints()
+    
+    # Use safe queries instead of direct kg access
     params = {
         'user_id': user_id, 'filename': filename, 'source': filename,
         'total_chunks': len(chunks), 'metadata': metadata
     }
-    kg.query("""
+    safe_kg_query("""
         MERGE (f:File {user_id: $user_id, filename: $filename})
         SET f.source = $source,
             f.processed_date = datetime(),
@@ -169,15 +212,16 @@ def create_or_update_file_node(filename, user_id, chunks, metadata):
             f.images_processed = $metadata.images_processed,
             f.successful_ocr = $metadata.successful_ocr,
             f.failed_ocr = $metadata.failed_ocr,
-            f.extraction_errors = $metadata.extraction_errors
+            f.extraction_errors = $metadata.extraction_errors,
+            f.original_url = $metadata.original_url
     """, params=params)
-    kg.query("""
+    safe_kg_query("""
         MATCH (u:User {user_id: $user_id})
         MATCH (f:File {user_id: $user_id, filename: $filename})
         MERGE (u)-[:UPLOADED]->(f)
     """, params={'user_id': user_id, 'filename': filename})
     # Remove existing chunks
-    kg.query("""
+    safe_kg_query("""
         MATCH (f:File {user_id: $user_id, filename: $filename})-[:HAS_CHUNK]->(c:Chunk)
         DETACH DELETE c
     """, params={'user_id': user_id, 'filename': filename})
@@ -196,7 +240,7 @@ def store_chunks(chunks, filename, user_id):
             'user_id': user_id,
             'filename': filename
         } for j, chunk in enumerate(batch)]
-        kg.query("""
+        safe_kg_query("""
             MATCH (f:File {user_id: $user_id, filename: $filename})
             UNWIND $params AS param
             CREATE (c:Chunk {id: param.id})
@@ -232,7 +276,7 @@ def create_chunk_relationships(filename=None):
         WHERE c1.chunk_index = c2.chunk_index - 1
         MERGE (c1)-[:NEXT]->(c2)
     """
-    kg.query(query, params={'filename': filename} if filename else {})
+    safe_kg_query(query, params={'filename': filename} if filename else {})
 
 
 def create_graph_and_store_chunks(chunks, filename, user_id, extraction_metadata):
@@ -324,6 +368,10 @@ def create_graph_and_store_chunks(chunks, filename, user_id, extraction_metadata
 def create_chunk_relationships(filename=None):
     """Create NEXT relationships between sequential chunks in the same file"""
     try:
+        if not neo4j_available():
+            print("Neo4j not available. Skipping chunk relationships.")
+            return
+            
         if filename:
             query = """
             MATCH (f:File {filename: $filename})-[:HAS_CHUNK]->(c1:Chunk)
@@ -331,7 +379,7 @@ def create_chunk_relationships(filename=None):
             WHERE c1.chunk_index = c2.chunk_index - 1
             MERGE (c1)-[:NEXT]->(c2)
             """
-            kg.query(query, params={'filename': filename})
+            safe_kg_query(query, params={'filename': filename})
         else:
             query = """
             MATCH (f:File)-[:HAS_CHUNK]->(c1:Chunk)
@@ -339,13 +387,30 @@ def create_chunk_relationships(filename=None):
             WHERE c1.chunk_index = c2.chunk_index - 1
             MERGE (c1)-[:NEXT]->(c2)
             """
-            kg.query(query)
+            safe_kg_query(query)
     except Exception as e:
         print(f"Error creating chunk relationships: {e}")
 
 def create_vector_index_and_embeddings(filename=None):
     try:
-        kg.query(f"""
+        # Check if OpenAI API key is available
+        from environment import OPENAI_API_KEY
+        if not OPENAI_API_KEY or OPENAI_API_KEY.strip() == "":
+            print(f"OpenAI API key not available. Skipping embeddings for {filename or 'all files'}")
+            return
+        
+        # Check if Neo4j is available
+        if not neo4j_available():
+            print(f"Neo4j not available. Skipping embeddings for {filename or 'all files'}")
+            return
+            
+        kg = get_neo4j_connection()
+        if kg is None:
+            print(f"Cannot connect to Neo4j. Skipping embeddings for {filename or 'all files'}")
+            return
+
+        # Create vector index
+        safe_kg_query(f"""
         CREATE VECTOR INDEX {VECTOR_INDEX_NAME} IF NOT EXISTS
         FOR (c:{VECTOR_NODE_LABEL}) ON (c.{VECTOR_EMBEDDING_PROPERTY})
         OPTIONS {{
@@ -356,35 +421,103 @@ def create_vector_index_and_embeddings(filename=None):
         }}
         """)
 
-        embeddings = OpenAIEmbeddings()
-        # Only process chunks for specific file if filename provided, otherwise all chunks
-        if filename:
-            chunks = kg.query("""
-                MATCH (f:File {filename: $filename})-[:HAS_CHUNK]->(c:Chunk)
-                WHERE c.textEmbedding IS NULL 
-                RETURN c.id AS id, c.text AS text, f.filename AS filename
-            """, params={'filename': filename})
-        else:
-            chunks = kg.query("""
-                MATCH (f:File)-[:HAS_CHUNK]->(c:Chunk)
-                WHERE c.textEmbedding IS NULL 
-                RETURN c.id AS id, c.text AS text, f.filename AS filename
-            """)
+        try:
+            embeddings = OpenAIEmbeddings()
+            
+            # Only process chunks for specific file if filename provided, otherwise all chunks
+            if filename:
+                chunks = safe_kg_query("""
+                    MATCH (f:File {filename: $filename})-[:HAS_CHUNK]->(c:Chunk)
+                    WHERE c.textEmbedding IS NULL 
+                    RETURN c.id AS id, c.text AS text, f.filename AS filename
+                """, params={'filename': filename})
+            else:
+                chunks = safe_kg_query("""
+                    MATCH (f:File)-[:HAS_CHUNK]->(c:Chunk)
+                    WHERE c.textEmbedding IS NULL 
+                    RETURN c.id AS id, c.text AS text, f.filename AS filename
+                """)
 
-        for chunk in tqdm(chunks, desc="Generating embedding", unit="chunk"):
-            embedding_vector = embeddings.embed_query(chunk['text'])
-            kg.query(
-                "MATCH (c:Chunk {id: $id}) SET c.textEmbedding = $embedding",
-                params={'id': chunk['id'], 'embedding': embedding_vector}
-            )
+            if chunks:
+                for chunk in tqdm(chunks, desc="Generating embedding", unit="chunk"):
+                    embedding_vector = embeddings.embed_query(chunk['text'])
+                    safe_kg_query(
+                        "MATCH (c:Chunk {id: $id}) SET c.textEmbedding = $embedding",
+                        params={'id': chunk['id'], 'embedding': embedding_vector}
+                    )
 
-        if filename:
-            print(f"Vector index and embeddings created/updated successfully for {filename}")
-        else:
-            print("Vector index and embeddings created/updated successfully for all files")
+                if filename:
+                    print(f"Vector index and embeddings created/updated successfully for {filename}")
+                else:
+                    print("Vector index and embeddings created/updated successfully for all files")
+            else:
+                print(f"No chunks found to create embeddings for {filename or 'all files'}")
+                
+        except Exception as e:
+            print(f"Error creating embeddings (continuing without embeddings): {e}")
+            # Don't exit, continue without embeddings
+            
     except Exception as e:
         print(f"Error creating vector index and embeddings: {e}")
-        exit(1)
+        # Don't exit, continue without embeddings
+
+def regenerate_all_embeddings(force=False):
+    """Force regenerate embeddings for all chunks, useful for fixing search bias"""
+    try:
+        # Check if OpenAI API key is available
+        from environment import OPENAI_API_KEY
+        if not OPENAI_API_KEY or OPENAI_API_KEY.strip() == "":
+            print("OpenAI API key not available. Cannot regenerate embeddings")
+            return False
+        
+        # Check if Neo4j is available
+        if not neo4j_available():
+            print("Neo4j not available. Cannot regenerate embeddings")
+            return False
+            
+        kg = get_neo4j_connection()
+        if kg is None:
+            print("Cannot connect to Neo4j. Cannot regenerate embeddings")
+            return False
+
+        try:
+            embeddings = OpenAIEmbeddings()
+            
+            # Get all chunks (regardless of whether they have embeddings)
+            if force:
+                chunks = safe_kg_query("""
+                    MATCH (f:File)-[:HAS_CHUNK]->(c:Chunk)
+                    RETURN c.id AS id, c.text AS text, f.filename AS filename
+                """)
+            else:
+                chunks = safe_kg_query("""
+                    MATCH (f:File)-[:HAS_CHUNK]->(c:Chunk)
+                    WHERE c.textEmbedding IS NULL 
+                    RETURN c.id AS id, c.text AS text, f.filename AS filename
+                """)
+
+            if chunks:
+                print(f"Generating embeddings for {len(chunks)} chunks...")
+                for chunk in tqdm(chunks, desc="Regenerating embeddings", unit="chunk"):
+                    embedding_vector = embeddings.embed_query(chunk['text'])
+                    safe_kg_query(
+                        "MATCH (c:Chunk {id: $id}) SET c.textEmbedding = $embedding",
+                        params={'id': chunk['id'], 'embedding': embedding_vector}
+                    )
+
+                print(f"Successfully regenerated embeddings for {len(chunks)} chunks")
+                return True
+            else:
+                print("No chunks found to regenerate embeddings")
+                return False
+                
+        except Exception as e:
+            print(f"Error regenerating embeddings: {e}")
+            return False
+            
+    except Exception as e:
+        print(f"Error in regenerate_all_embeddings: {e}")
+        return False
 
 def visualize_graph_structure():
     files_info = kg.query("""
@@ -425,32 +558,19 @@ def setup_qa_system(user_id, filenames=None):
         retrieval_query = f"""
         MATCH (u:User {{user_id: '{user_id}'}})-[:UPLOADED]->(f:File)-[:HAS_CHUNK]->(c:Chunk)
         WHERE c.textEmbedding IS NOT NULL {file_filter}
-        WITH f, c, gds.similarity.cosine(c.textEmbedding, $embedding) AS score
-
-        // Get the main chunks based on similarity
-        WITH f, c, score WHERE score > 0.7
+        RETURN c.text AS text,
+               score,
+               {{
+                   source: f.source,
+                   filename: f.filename,
+                   user_id: f.user_id,
+                   chunk_index: c.chunk_index,
+                   section: c.section,
+                   id: c.id,
+                   original_url: f.original_url
+               }} AS metadata
         ORDER BY score DESC
-        LIMIT 5
-
-        // Get surrounding context for each chunk from the same file and section
-        MATCH (f)-[:HAS_CHUNK]->(context:Chunk)
-        WHERE context.section = c.section
-
-        WITH f, c, score, 
-             COLLECT(DISTINCT context.text) as contextTexts
-
-        RETURN 
-            c.text + '\\n\\n' + apoc.text.join(contextTexts, ' ') AS text,
-            score,
-            {{
-                source: f.source,
-                filename: f.filename,
-                user_id: f.user_id,
-                chunk_index: c.chunk_index,
-                section: c.section,
-                id: c.id
-            }} AS metadata
-        ORDER BY score DESC
+        LIMIT 10
         """
 
         # Create vector store with user-scoped retrieval query
@@ -464,8 +584,8 @@ def setup_qa_system(user_id, filenames=None):
             retrieval_query=retrieval_query)
 
         retriever = vector_store.as_retriever(search_kwargs={
-            "k": 5,
-            "score_threshold": 0.7
+            "k": 10,
+            "score_threshold": 0.3
         })
 
         # Use Claude for better QA responses
@@ -591,38 +711,109 @@ def process_and_store_pdf(pdf_path, user_id):
         logger.error(f"Error processing PDF {filename}: {str(e)}")
         raise
 
-def ask_question(user_id: str, question: str, filenames: list = None):
+def ask_question_with_diversity(user_id: str, question: str, filenames: list = None):
     """
-    Ask a question against user's knowledge graph
-    Args:
-        user_id: User identifier 
-        question: Question to ask
-        filenames: List of specific filenames to search in (optional)
-    Returns:
-        dict: QA response with answer and source information
+    Ask a question with diverse source retrieval to avoid bias
     """
     try:
-        # Setup QA system for the user
-        qa_chain = setup_qa_system(user_id, filenames)
+        from langchain_openai import OpenAIEmbeddings
         
-        # Get response from QA chain
-        response = qa_chain.invoke({"question": question})
+        # Get embedding for the question
+        embeddings = OpenAIEmbeddings()
+        question_embedding = embeddings.embed_query(question)
         
-        # Extract source information
-        sources = []
-        for doc in response.get('source_documents', []):
-            source_info = {
-                'filename': doc.metadata.get('filename', 'Unknown'),
-                'user_id': doc.metadata.get('user_id', 'Unknown'), 
-                'section': doc.metadata.get('section', 'Unknown'),
-                'chunk_index': doc.metadata.get('chunk_index', 'Unknown'),
-                'chunk_id': doc.metadata.get('id', 'Unknown')
+        # Build filename filter for the query
+        if filenames:
+            filenames_str = ', '.join([f'"{f}"' for f in filenames])
+            file_filter = f"AND f.filename IN [{filenames_str}]"
+        else:
+            file_filter = ""
+
+        # Use a simpler approach to ensure diversity by selecting from each file
+        chunks = safe_kg_query(f"""
+            MATCH (u:User {{user_id: '{user_id}'}})-[:UPLOADED]->(f:File)-[:HAS_CHUNK]->(c:Chunk)
+            WHERE c.textEmbedding IS NOT NULL {file_filter}
+            WITH f, COLLECT(c) AS all_chunks
+            UNWIND all_chunks[0..5] AS c  // Get up to 5 chunks per file for diversity
+            RETURN c.text AS text,
+                   0.5 AS score,
+                   c.id AS chunk_id, 
+                   c.filename AS filename,
+                   c.section AS section,
+                   c.chunk_index AS chunk_index,
+                   c.user_id AS user_id
+            ORDER BY c.filename, c.chunk_index
+            LIMIT 10
+        """)
+        
+        if not chunks:
+            return {
+                "status": "success",
+                "answer": "I don't have enough information to answer that question.",
+                "question": question,
+                "sources": [],
+                "total_sources": 0
             }
-            sources.append(source_info)
+        
+        # Create context for Claude
+        context_parts = []
+        sources = []
+        
+        for chunk in chunks:
+            context_parts.append(f"Document: {chunk['text']}")
+            context_parts.append(f"Source: {chunk['filename']}")
+            context_parts.append("---")
+            
+            # Get original URL for this file
+            file_info = safe_kg_query("""
+                MATCH (f:File {filename: $filename, user_id: $user_id})
+                RETURN f.original_url AS original_url
+            """, params={'filename': chunk['filename'], 'user_id': user_id})
+            
+            original_url = file_info[0]['original_url'] if file_info else None
+            
+            sources.append({
+                'filename': chunk['filename'],
+                'user_id': chunk['user_id'],
+                'section': chunk['section'],
+                'chunk_index': chunk['chunk_index'],
+                'chunk_id': chunk.get('chunk_id', chunk.get('id', 'Unknown')),
+                'original_url': original_url
+            })
+        
+        context = "\n".join(context_parts)
+        
+        # Use Claude for the answer
+        system_prompt = """You are a helpful AI assistant that answers questions based on the provided context. 
+        Always provide detailed, accurate answers using the information from the context. 
+        If the context doesn't contain enough information to answer the question completely, 
+        say so and provide what information you can. 
+        Be conversational but informative."""
+        
+        user_prompt = f"""Based on the following context, please answer this question very precisely and briefly: {question}
+
+Context:
+{context}
+
+Please provide a short answer based on the context provided."""
+        
+        # Call Claude API
+        import anthropic
+        client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
+        message = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=2000,
+            system=system_prompt,
+            messages=[
+                {"role": "user", "content": user_prompt}
+            ]
+        )
+        
+        answer = message.content[0].text
         
         return {
             "status": "success",
-            "answer": response.get('answer', ''),
+            "answer": answer,
             "question": question,
             "sources": sources,
             "total_sources": len(sources)
@@ -635,11 +826,67 @@ def ask_question(user_id: str, question: str, filenames: list = None):
             "error": str(e)
         }
 
+def ask_question(user_id: str, question: str, filenames: list = None):
+    """
+    Ask a question against user's knowledge graph
+    Args:
+        user_id: User identifier 
+        question: Question to ask
+        filenames: List of specific filenames to search in (optional)
+    Returns:
+        dict: QA response with answer and source information
+    """
+    try:
+        # Try diverse search first
+        return ask_question_with_diversity(user_id, question, filenames)
+        
+    except Exception as e:
+        # Fallback to original method
+        try:
+            # Setup QA system for the user
+            qa_chain = setup_qa_system(user_id, filenames)
+            
+            # Get response from QA chain
+            response = qa_chain.invoke({"question": question})
+            
+            # Extract source information
+            sources = []
+            for doc in response.get('source_documents', []):
+                source_info = {
+                    'filename': doc.metadata.get('filename', 'Unknown'),
+                    'user_id': doc.metadata.get('user_id', 'Unknown'), 
+                    'section': doc.metadata.get('section', 'Unknown'),
+                    'chunk_index': doc.metadata.get('chunk_index', 'Unknown'),
+                    'chunk_id': doc.metadata.get('id', 'Unknown'),
+                    'original_url': doc.metadata.get('original_url')  # Include original URL
+                }
+                sources.append(source_info)
+            
+            return {
+                "status": "success",
+                "answer": response.get('answer', ''),
+                "question": question,
+                "sources": sources,
+                "total_sources": len(sources)
+            }
+            
+        except Exception as e2:
+            return {
+                "status": "error",
+                "message": f"Error processing question: {str(e2)}",
+                "error": str(e2)
+            }
+
 def get_graph_traversal_path(sources, user_id):
     """
     Generate graph traversal path showing nodes and edges that supported the answer
     """
     try:
+        # Check if Neo4j is available
+        kg_conn = get_neo4j_connection()
+        if kg_conn is None:
+            return {"error": "Neo4j connection not available"}
+            
         traversal_data = {
             "nodes": [],
             "edges": [],
@@ -656,7 +903,7 @@ def get_graph_traversal_path(sources, user_id):
             section = source.get('section', 'Unknown')
             
             # Get the chunk node
-            chunk_result = kg.query("""
+            chunk_result = safe_kg_query("""
                 MATCH (c:Chunk {id: $chunk_id, user_id: $user_id})
                 RETURN c.id as id, c.text as text, c.chunk_index as index, c.section as section
             """, params={'chunk_id': chunk_id, 'user_id': user_id})
@@ -688,7 +935,7 @@ def get_graph_traversal_path(sources, user_id):
                 traversal_data["metadata"]["files_involved"].add(filename)
             
             # Get related chunks (NEXT relationships)
-            related_result = kg.query("""
+            related_result = safe_kg_query("""
                 MATCH (c:Chunk {id: $chunk_id, user_id: $user_id})-[:NEXT]->(next:Chunk)
                 RETURN next.id as id, next.text as text, next.chunk_index as index
                 LIMIT 2
@@ -727,7 +974,7 @@ def get_graph_traversal_path(sources, user_id):
         
         # Get file nodes
         for filename in traversal_data["metadata"]["files_involved"]:
-            file_result = kg.query("""
+            file_result = safe_kg_query("""
                 MATCH (f:File {filename: $filename, user_id: $user_id})
                 RETURN f.filename as filename, f.total_chunks as total_chunks
             """, params={'filename': filename, 'user_id': user_id})
@@ -762,6 +1009,28 @@ def get_graph_traversal_path(sources, user_id):
         print(f"Error generating traversal path: {e}")
         return {"error": str(e)}
 
+def create_url_knowledge_graph(user_id, filename, file_contents, original_url, content_type=None):
+    """Create knowledge graph for URL content with original URL stored as metadata"""
+    try:
+        create_or_get_user(user_id)
+        
+        # For URLs, we know it's text content
+        text = file_contents.decode('utf-8')
+        metadata = {
+            'pages_processed': 1,
+            'images_processed': 0,
+            'successful_ocr': 1,
+            'failed_ocr': 0,
+            'extraction_errors': 0,
+            'original_url': original_url  # Store the original URL
+        }
+        
+        chunks_count = _process_text_file(text, filename, user_id, metadata)
+        return {"status": "success", "processed_filename": filename, "chunks": chunks_count, "file_type": "text"}
+        
+    except Exception as e:
+        return {"status": "error", "message": f"Error processing URL '{original_url}': {str(e)}", "error": str(e)}
+
 def create_file_knowledge_graph(user_id, filename, file_contents, content_type=None):
     try:
         create_or_get_user(user_id)
@@ -781,7 +1050,8 @@ def create_file_knowledge_graph(user_id, filename, file_contents, content_type=N
                     'images_processed': stats['total_images'],
                     'successful_ocr': stats['successful_ocr'],
                     'failed_ocr': stats['failed_ocr'],
-                    'extraction_errors': len(stats['errors'])
+                    'extraction_errors': len(stats['errors']),
+                    'original_url': None  # No URL for file uploads
                 }
                 chunks_count = _process_text_file(pdf_text, filename, user_id, metadata)
                 os.remove(temp_pdf_path)
@@ -799,7 +1069,8 @@ def create_file_knowledge_graph(user_id, filename, file_contents, content_type=N
                 'images_processed': 1,
                 'successful_ocr': 1 if text else 0,
                 'failed_ocr': 0 if text else 1,
-                'extraction_errors': 0
+                'extraction_errors': 0,
+                'original_url': None  # No URL for file uploads
             }
             chunks_count = _process_text_file(text, filename, user_id, metadata)
             return {"status": "success", "processed_filename": filename, "chunks": chunks_count, "file_type": "image"}
@@ -812,7 +1083,8 @@ def create_file_knowledge_graph(user_id, filename, file_contents, content_type=N
                     'images_processed': 0,
                     'successful_ocr': 1,
                     'failed_ocr': 0,
-                    'extraction_errors': 0
+                    'extraction_errors': 0,
+                    'original_url': None  # No URL for file uploads
                 }
                 file_type = "text"
             except Exception:
